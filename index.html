@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>YR System — Software a medida</title>
+<meta name="description" content="YR System: Full Stack Developer especializado en AI, automatización y backend robusto. 15+ proyectos entregados para empresas en USA. Consulta gratuita." />
+<meta name="keywords" content="software personalizado, full stack, AI, automatización, backend, developer, soluciones escalables" />
+<meta name="author" content="Yeinier Rivero" />
+<meta property="og:title" content="YR System — Software a medida" />
+<meta property="og:description" content="Full Stack Developer especializado en AI, automatización y backend robusto. 15+ proyectos entregados para empresas en USA. Transformamos tus ideas en sistemas escalables." />
+<meta property="og:image" content="logo.png" />
+<meta property="og:url" content="https://yr-system.com" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="YR System — Software a medida" />
+<meta name="twitter:description" content="Soluciones de software personalizadas con tecnología moderna." />
+<meta name="twitter:image" content="logo.png" />
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+<meta name="googlebot" content="index, follow" />
+<meta name="language" content="Spanish" />
+<link rel="canonical" href="https://yr-system.com" />
+<link rel="alternate" hreflang="es" href="https://yr-system.com" />
+<link rel="alternate" hreflang="en" href="https://yr-system.com/en" />
+<link rel="icon" href="logo.png" type="image/png" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "YR System",
+  "url": "https://yr-system.com",
+  "logo": "logo.png",
+  "description": "Full Stack Developer especializado en AI, automatización y backend robusto",
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "telephone": "+1-786-602-0720",
+    "contactType": "Customer Service"
+  },
+  "sameAs": ["https://github.com/yrcode", "https://twitter.com/yrsystem", "https://linkedin.com/in/yeinier"],
+  "founder": {
+    "@type": "Person",
+    "name": "Yeinier Rivero"
+  }
+}
+</script>
+<meta name="theme-color" content="#0f172a" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" as="style" />
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js" as="script" />
+<link rel="dns-prefetch" href="https://cdnjs.cloudflare.com" />
+<link rel="dns-prefetch" href="https://unpkg.com" />
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+<style>
+  html, body { margin: 0; padding: 0; }
+  * { box-sizing: border-box; }
+  img { max-width: 100%; height: auto; }
+</style>
+<script>
+  if ('loading' in HTMLImageElement.prototype) {
+    document.querySelectorAll('img[data-src]').forEach(img => {
+      img.src = img.dataset.src;
+      img.removeAttribute('data-src');
+    });
+  } else {
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/lazysizes/5.3.2/lazysizes.min.js';
+    script.async = true;
+    document.body.appendChild(script);
+  }
+</script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- GSAP & AOS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js" defer></script>
+  <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+  <script src="https://unpkg.com/aos@next/dist/aos.js" defer></script>
+
+  <!-- EmailJS -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js" defer></script>
+
+  <!-- React + Babel -->
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" defer></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" defer></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" defer></script>
+
+  <!-- ORDER MATTERS: load helpers and components before App -->
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="i18n.jsx"></script>
+  <script type="text/babel" src="theme.jsx"></script>
+  <script type="text/babel" src="gsap-animations.jsx"></script>
+
+  <script type="text/babel" src="components/Container.jsx"></script>
+  <script type="text/babel" src="components/ScrollIndicators.jsx"></script>
+  <script type="text/babel" src="components/Nav.jsx"></script>
+  <script type="text/babel" src="components/Counter.jsx"></script>
+  <script type="text/babel" src="components/Hero.jsx"></script>
+  <script type="text/babel" src="components/About.jsx"></script>
+  <script type="text/babel" src="components/StatusBar.jsx"></script>
+  <script type="text/babel" src="components/Services.jsx"></script>
+  <script type="text/babel" src="components/Portfolio.jsx"></script>
+  <script type="text/babel" src="components/CodeShowcase.jsx"></script>
+  <script type="text/babel" src="components/Stack.jsx"></script>
+  <script type="text/babel" src="components/Process.jsx"></script>
+  <script type="text/babel" src="components/Work.jsx"></script>
+  <script type="text/babel" src="components/Pricing.jsx"></script>
+  <script type="text/babel" src="components/FAQ.jsx"></script>
+  <script type="text/babel" src="components/Field.jsx"></script>
+  <script type="text/babel" src="components/Contact.jsx"></script>
+  <script type="text/babel" src="components/Footer.jsx"></script>
+
+  <script type="text/babel" src="App.jsx"></script>
+</body>
+</html>
