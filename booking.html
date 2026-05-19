@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Alberto Barber — Reservá tu turno</title>
+<meta name="description" content="Reservá tu turno con Alberto Barber, The King Barber. Especialista en fade. Corte, barba y combo rey." />
+<meta name="theme-color" content="#0A0A0A" media="(prefers-color-scheme: dark)" />
+<meta name="theme-color" content="#F7F5F2" media="(prefers-color-scheme: light)" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --black: #0A0A0A;
+    --gold: #C9A961;
+    --gold-dim: #C9A96133;
+    --white: #F7F5F2;
+    --green: #30D158;
+    --surface: rgba(255,255,255,0.06);
+    --surface-2: rgba(255,255,255,0.09);
+    --line: rgba(255,255,255,0.10);
+    --text: #F7F5F2;
+    --text-dim: rgba(247,245,242,0.55);
+    --footer-bg: rgba(10,10,10,0.72);
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --black: #F7F5F2;
+      --white: #0A0A0A;
+      --surface: rgba(10,10,10,0.04);
+      --surface-2: rgba(10,10,10,0.07);
+      --line: rgba(10,10,10,0.10);
+      --text: #1A1714;
+      --text-dim: rgba(26,23,20,0.55);
+      --footer-bg: rgba(247,245,242,0.78);
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--black);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  .serif { font-family: 'Playfair Display', Georgia, serif; }
+  #root { padding-bottom: 110px; }
+
+  @keyframes bgZoom { from { transform: scale(1.08); } to { transform: scale(1.18); } }
+  @keyframes riseIn { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes popSpring {
+    0% { transform: scale(0.6); opacity: 0; }
+    55% { transform: scale(1.12); opacity: 1; }
+    75% { transform: scale(0.96); }
+    100% { transform: scale(1); }
+  }
+  @keyframes confettiFall {
+    0% { transform: translate(0,0) rotate(0deg); opacity: 1; }
+    100% { transform: translate(var(--cx), var(--cy)) rotate(var(--cr)); opacity: 0; }
+  }
+  @keyframes walletIn {
+    from { opacity: 0; transform: translateY(60px) scale(0.94); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes pulseDot { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+  @keyframes sheen { 0% { background-position: -160% 0; } 100% { background-position: 260% 0; } }
+
+  .reveal { animation: riseIn .6s cubic-bezier(.22,.9,.3,1) backwards; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+  button:active { transform: scale(0.97); }
+  .chip { transition: transform .42s cubic-bezier(.34,1.56,.64,1), background .25s, color .25s, box-shadow .3s, border-color .25s; }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"></script>
+
+  <script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useMemo } = React;
+
+const haptic = (ms) => { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) {} };
+
+const SERVICES = [
+  { id: 'corte',  emoji: '✂️', name: 'Corte Clásico',  price: 35, mins: 30 },
+  { id: 'barba',  emoji: '🧔', name: 'Barba Premium',  price: 20, mins: 15 },
+  { id: 'combo',  emoji: '👑', name: 'Combo Rey',      price: 50, mins: 45, popular: true },
+];
+
+const DAY_ES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const MON_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+// 14 días desde hoy. Patrón determinístico de disponibilidad.
+function buildDays() {
+  const out = [];
+  const base = new Date();
+  base.setHours(0, 0, 0, 0);
+  for (let i = 0; i < 14; i++) {
+    const d = new Date(base);
+    d.setDate(base.getDate() + i);
+    const dow = d.getDay();
+    const full = (dow === 0) || (i % 5 === 3); // domingos y un patrón = sin cupo
+    out.push({
+      date: d,
+      label: DAY_ES[dow],
+      num: d.getDate(),
+      isToday: i === 0,
+      available: !full,
+    });
+  }
+  return out;
+}
+
+const SLOT_TIMES = ['11:00 AM','11:45 AM','12:30 PM','1:15 PM','2:00 PM','3:30 PM','4:15 PM','5:00 PM','6:30 PM','7:15 PM'];
+
+function slotsFor(day, service) {
+  if (!day || !day.available) return [];
+  // disponibilidad pseudo-aleatoria pero estable por día
+  const seed = day.num;
+  return SLOT_TIMES.map((time, idx) => ({
+    time,
+    mins: service ? service.mins : 30,
+    price: service ? service.price : 35,
+    open: ((seed + idx * 7) % 11) !== 0,
+  })).filter(s => s.open);
+}
+
+/* ---------- Confetti dorado ---------- */
+function burstConfetti(x, y) {
+  const colors = ['#C9A961', '#E4CE8F', '#F7F5F2', '#B8954E'];
+  const layer = document.createElement('div');
+  layer.style.cssText = 'position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:9999;overflow:hidden';
+  document.body.appendChild(layer);
+  for (let i = 0; i < 26; i++) {
+    const p = document.createElement('div');
+    const size = 5 + Math.random() * 6;
+    const ang = Math.random() * Math.PI * 2;
+    const dist = 60 + Math.random() * 150;
+    p.style.cssText = `position:absolute;left:${x}px;top:${y}px;width:${size}px;height:${size}px;` +
+      `background:${colors[i % colors.length]};border-radius:${Math.random() > .5 ? '50%' : '2px'};` +
+      `--cx:${Math.cos(ang) * dist}px;--cy:${Math.sin(ang) * dist + 120}px;--cr:${Math.random() * 720}deg;` +
+      `animation:confettiFall ${0.9 + Math.random() * 0.7}s cubic-bezier(.2,.6,.3,1) forwards;`;
+    layer.appendChild(p);
+  }
+  setTimeout(() => layer.remove(), 1900);
+}
+
+/* ---------- QR decorativo (SVG determinístico) ---------- */
+function QR({ size = 132, seed = 7 }) {
+  const cells = 21;
+  const rects = [];
+  let s = seed * 9301 + 49297;
+  const rnd = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+  for (let r = 0; r < cells; r++) {
+    for (let c = 0; c < cells; c++) {
+      const finder = (r < 7 && c < 7) || (r < 7 && c >= cells - 7) || (r >= cells - 7 && c < 7);
+      if (finder) continue;
+      if (rnd() > 0.52) rects.push(<rect key={r + '-' + c} x={c} y={r} width="1" height="1" />);
+    }
+  }
+  const Finder = ({ x, y }) => (
+    <g transform={`translate(${x},${y})`} fill="#0A0A0A">
+      <rect width="7" height="7" />
+      <rect x="1" y="1" width="5" height="5" fill="#fff" />
+      <rect x="2" y="2" width="3" height="3" fill="#0A0A0A" />
+    </g>
+  );
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${cells} ${cells}`} style={{ borderRadius: 10, background: '#fff', padding: 6, boxSizing: 'content-box' }}>
+      <g fill="#0A0A0A">{rects}</g>
+      <Finder x={0} y={0} />
+      <Finder x={cells - 7} y={0} />
+      <Finder x={0} y={cells - 7} />
+    </svg>
+  );
+}
+
+/* ---------- App ---------- */
+function App() {
+  const days = useMemo(buildDays, []);
+  const firstFreeDay = days.find(d => d.available);
+
+  const [service, setService] = useState(null);
+  const [dayIdx, setDayIdx] = useState(days.findIndex(d => d.available));
+  const [slot, setSlot] = useState(null);
+  const [confirmed, setConfirmed] = useState(null);
+
+  const day = days[dayIdx];
+  const slots = useMemo(() => slotsFor(day, service), [day, service]);
+
+  useEffect(() => { setSlot(null); }, [dayIdx, service]);
+
+  const pickService = (sv) => { haptic(8); setService(sv); };
+
+  const pickDay = (i) => {
+    if (!days[i].available) { haptic([4, 30, 4]); return; }
+    haptic(8); setDayIdx(i);
+  };
+
+  const pickSlot = (sl, e) => {
+    haptic([6, 20, 14]);
+    setSlot(sl);
+    const r = e.currentTarget.getBoundingClientRect();
+    burstConfetti(r.left + r.width / 2, r.top + r.height / 2);
+  };
+
+  const quickBook = () => {
+    haptic(10);
+    const i = days.findIndex(d => d.available);
+    if (i >= 0) setDayIdx(i);
+    if (!service) setService(SERVICES[0]);
+    const sl = slotsFor(days[i], service || SERVICES[0])[0];
+    if (sl) setSlot(sl);
+    setTimeout(() => window.scrollTo({ top: 9999, behavior: 'smooth' }), 80);
+  };
+
+  const confirm = () => {
+    if (!service || !slot) return;
+    haptic([10, 40, 10, 40, 18]);
+    setConfirmed({
+      service, slot, date: day.date,
+      dateLabel: `${day.label} ${day.num} ${MON_ES[day.date.getMonth()]}`,
+      code: 'KB-' + (1000 + Math.floor(Math.random() * 9000)),
+    });
+    setTimeout(() => burstConfetti(window.innerWidth / 2, window.innerHeight / 3), 250);
+  };
+
+  const ready = service && slot;
+
+  return (
+    <div>
+      {/* ===== HERO GLASSMORPHISM ===== */}
+      <header style={{ position: 'relative', minHeight: 360, display: 'flex', alignItems: 'flex-end', overflow: 'hidden' }}>
+        <div style={{
+          position: 'absolute', inset: 0,
+          background:
+            'radial-gradient(120% 90% at 20% 0%, #2a2114 0%, transparent 55%),' +
+            'radial-gradient(120% 90% at 90% 30%, #1a1206 0%, transparent 50%),' +
+            'linear-gradient(160deg, #1c1812 0%, #0A0A0A 70%)',
+          filter: 'blur(20px)', transform: 'scale(1.12)',
+          animation: 'bgZoom 18s ease-in-out infinite alternate',
+        }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(10,10,10,0.1) 0%, rgba(10,10,10,0.7) 100%)' }} />
+
+        <div className="reveal" style={{
+          position: 'relative', margin: '0 16px 28px', width: 'calc(100% - 32px)',
+          maxWidth: 520, marginLeft: 'auto', marginRight: 'auto',
+          background: 'var(--surface)', backdropFilter: 'blur(22px) saturate(1.4)', WebkitBackdropFilter: 'blur(22px) saturate(1.4)',
+          border: '1px solid var(--line)', borderRadius: 24, padding: 22,
+          display: 'flex', alignItems: 'center', gap: 16,
+          boxShadow: '0 24px 60px -24px rgba(0,0,0,.7)',
+        }}>
+          <div style={{
+            width: 76, height: 76, borderRadius: '50%', flexShrink: 0,
+            border: '2.5px solid var(--gold)', padding: 3,
+            boxShadow: '0 0 0 1px rgba(201,169,97,.3), 0 8px 24px -8px rgba(201,169,97,.5)',
+          }}>
+            <div style={{
+              width: '100%', height: '100%', borderRadius: '50%',
+              background: 'linear-gradient(145deg, #C9A961, #2a2114)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: "'Playfair Display', serif", fontSize: 30, fontWeight: 700, color: '#0A0A0A',
+            }}>AB</div>
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div className="serif" style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.1 }}>Alberto Barber</div>
+            <div style={{ fontSize: 13.5, color: 'var(--text-dim)', margin: '5px 0 12px', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <span style={{ color: 'var(--gold)' }}>★ 4.9</span>
+              <span>·</span><span>The King Barber</span>
+              <span>·</span><span>Especialista en Fade</span>
+            </div>
+            <a href="https://instagram.com" target="_blank" rel="noopener" style={{
+              display: 'inline-flex', alignItems: 'center', gap: 7, textDecoration: 'none',
+              border: '1px solid var(--gold)', color: 'var(--gold)',
+              padding: '8px 16px', borderRadius: 999, fontSize: 13, fontWeight: 600,
+            }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="2" y="2" width="20" height="20" rx="5.5" />
+                <circle cx="12" cy="12" r="4.5" /><circle cx="17.5" cy="6.5" r="1.1" fill="currentColor" />
+              </svg>
+              Instagram
+            </a>
+          </div>
+        </div>
+      </header>
+
+      <main style={{ maxWidth: 560, margin: '0 auto', padding: '8px 16px 0' }}>
+
+        {/* ===== PRÓXIMO LIBRE ===== */}
+        {firstFreeDay && !confirmed && (
+          <button onClick={quickBook} className="reveal" style={{
+            width: '100%', textAlign: 'left', marginTop: 18,
+            background: 'var(--gold-dim)', border: '1px solid var(--gold)',
+            borderRadius: 16, padding: '14px 16px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+              <span style={{ width: 9, height: 9, borderRadius: '50%', background: 'var(--green)', animation: 'pulseDot 1.6s ease-in-out infinite', display: 'inline-block' }} />
+              <span style={{ fontSize: 14, fontWeight: 600 }}>
+                Próximo libre: <span style={{ color: 'var(--gold)' }}>Hoy a las 3:30 PM</span>
+              </span>
+            </div>
+            <span style={{ color: 'var(--gold)', fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap' }}>Reservar →</span>
+          </button>
+        )}
+
+        {/* ===== SERVICIOS ===== */}
+        <Section n="01" title="Elegí tu servicio" />
+        <div className="no-scrollbar" style={{
+          display: 'flex', gap: 12, overflowX: 'auto', padding: '4px 2px 8px',
+          scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch',
+        }}>
+          {SERVICES.map((sv, i) => {
+            const on = service && service.id === sv.id;
+            return (
+              <button key={sv.id} onClick={() => pickService(sv)} className="reveal" style={{
+                animationDelay: `${i * 70}ms`,
+                position: 'relative', flex: '0 0 200px', scrollSnapAlign: 'center',
+                textAlign: 'left', padding: 18, borderRadius: 20,
+                background: on ? 'var(--gold-dim)' : 'var(--surface)',
+                border: `1.5px solid ${on ? 'var(--gold)' : 'var(--line)'}`,
+                boxShadow: on ? '0 14px 34px -14px rgba(201,169,97,.55)' : '0 10px 26px -18px rgba(0,0,0,.6)',
+                transition: 'background .25s, border-color .25s, box-shadow .3s, transform .25s',
+                transform: on ? 'translateY(-2px)' : 'none',
+              }}>
+                {sv.popular && (
+                  <span style={{
+                    position: 'absolute', top: -10, right: 14, fontSize: 10.5, fontWeight: 700,
+                    background: 'var(--gold)', color: '#0A0A0A', padding: '4px 10px', borderRadius: 999,
+                    letterSpacing: 0.3,
+                  }}>★ Más popular</span>
+                )}
+                <div style={{ fontSize: 30 }}>{sv.emoji}</div>
+                <div className="serif" style={{ fontSize: 20, fontWeight: 600, marginTop: 8 }}>{sv.name}</div>
+                <div style={{ marginTop: 8, display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                  <span style={{ fontSize: 22, fontWeight: 700, color: on ? 'var(--gold)' : 'var(--text)' }}>${sv.price}</span>
+                  <span style={{ fontSize: 13, color: 'var(--text-dim)' }}>{sv.mins} min</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ===== CALENDARIO iOS ===== */}
+        <Section n="02" title="Elegí el día" />
+        <div className="no-scrollbar" style={{
+          display: 'flex', gap: 10, overflowX: 'auto', padding: '4px 2px 10px',
+          WebkitOverflowScrolling: 'touch', scrollSnapType: 'x proximity',
+        }}>
+          {days.map((d, i) => {
+            const on = i === dayIdx;
+            return (
+              <button key={i} onClick={() => pickDay(i)} disabled={!d.available} style={{
+                flex: '0 0 auto', width: 56, padding: '12px 0', borderRadius: 16,
+                scrollSnapAlign: 'center',
+                background: on ? 'transparent' : 'var(--surface)',
+                border: `1px solid ${on ? 'transparent' : 'var(--line)'}`,
+                opacity: d.available ? 1 : 0.3,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                transition: 'background .2s, opacity .2s',
+              }}>
+                <span style={{ fontSize: 11, color: on ? 'var(--gold)' : 'var(--text-dim)', fontWeight: 600 }}>{d.label}</span>
+                <span style={{
+                  width: 36, height: 36, borderRadius: '50%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 16, fontWeight: 700,
+                  background: on ? 'var(--gold)' : 'transparent',
+                  color: on ? '#0A0A0A' : 'var(--text)',
+                  border: d.isToday && !on ? '1.5px solid var(--gold)' : '1.5px solid transparent',
+                  transition: 'background .25s, color .25s',
+                }}>{d.num}</span>
+                <span style={{
+                  width: 5, height: 5, borderRadius: '50%',
+                  background: d.available ? 'var(--green)' : 'transparent',
+                }} />
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ===== SLOTS DE HORA ===== */}
+        <Section n="03" title="Elegí la hora" />
+        {!service && (
+          <p style={{ fontSize: 13.5, color: 'var(--text-dim)', margin: '4px 2px 14px' }}>
+            Primero elegí un servicio arriba ↑
+          </p>
+        )}
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+          gap: 12, paddingBottom: 8,
+        }}>
+          {service && slots.map((sl, i) => {
+            const on = slot && slot.time === sl.time;
+            return (
+              <button key={sl.time} onClick={(e) => pickSlot(sl, e)} className="chip" style={{
+                animation: `popSpring .5s cubic-bezier(.34,1.56,.64,1) ${i * 55}ms backwards`,
+                padding: '14px 12px', borderRadius: 16, textAlign: 'left',
+                background: on ? 'var(--gold)' : 'var(--surface)',
+                color: on ? '#0A0A0A' : 'var(--text)',
+                border: `1.5px solid ${on ? 'var(--gold)' : 'var(--line)'}`,
+                transform: on ? 'scale(1.06)' : 'scale(1)',
+                boxShadow: on ? '0 16px 36px -12px rgba(201,169,97,.6)' : 'none',
+                position: 'relative',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 16, fontWeight: 700 }}>{sl.time}</span>
+                  {on && <span style={{ fontSize: 15, fontWeight: 800 }}>✓</span>}
+                </div>
+                <div style={{ fontSize: 12, marginTop: 4, opacity: on ? 0.7 : 0.55 }}>
+                  {sl.mins} min · ${sl.price}
+                </div>
+              </button>
+            );
+          })}
+          {service && slots.length === 0 && (
+            <p style={{ fontSize: 13.5, color: 'var(--text-dim)', gridColumn: '1/-1', margin: '4px 2px' }}>
+              Sin cupos este día. Probá otro ↑
+            </p>
+          )}
+        </div>
+      </main>
+
+      {/* ===== FOOTER QUE CONVIERTE ===== */}
+      <div style={{
+        position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 50,
+        background: 'var(--footer-bg)', backdropFilter: 'blur(20px) saturate(1.5)',
+        WebkitBackdropFilter: 'blur(20px) saturate(1.5)',
+        borderTop: '1px solid var(--line)',
+        padding: '14px 16px calc(14px + env(safe-area-inset-bottom))',
+      }}>
+        <div style={{
+          maxWidth: 560, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 14,
+        }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 12.5, color: 'var(--text-dim)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {ready
+                ? `${day.label} ${day.num} · ${slot.time} · ${service.name}`
+                : 'Elegí servicio y hora'}
+            </div>
+            <div style={{ fontSize: 20, fontWeight: 800, marginTop: 2 }}>
+              {ready ? `$${service.price}` : '—'}
+            </div>
+          </div>
+          <button onClick={confirm} disabled={!ready} style={{
+            flex: '0 0 auto', minWidth: 150, padding: '15px 22px', borderRadius: 999,
+            fontSize: 15.5, fontWeight: 700,
+            background: ready ? 'var(--gold)' : 'var(--surface-2)',
+            color: ready ? '#0A0A0A' : 'var(--text-dim)',
+            boxShadow: ready ? '0 12px 30px -10px rgba(201,169,97,.6)' : 'none',
+            transition: 'background .25s, color .25s, box-shadow .3s',
+            cursor: ready ? 'pointer' : 'not-allowed',
+          }}>
+            {ready ? `Confirmar $${service.price}` : 'Confirmar'}
+          </button>
+        </div>
+      </div>
+
+      {/* ===== POST-RESERVA: APPLE WALLET ===== */}
+      {confirmed && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 100,
+          background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+        }} onClick={() => setConfirmed(null)}>
+          <div onClick={(e) => e.stopPropagation()} style={{
+            width: '100%', maxWidth: 380, animation: 'walletIn .55s cubic-bezier(.22,.9,.3,1)',
+          }}>
+            <div style={{
+              background: 'linear-gradient(160deg, #1c1812 0%, #0A0A0A 100%)',
+              borderRadius: 26, overflow: 'hidden',
+              border: '1px solid rgba(201,169,97,.35)',
+              boxShadow: '0 30px 70px -20px rgba(0,0,0,.8)',
+              color: '#F7F5F2',
+            }}>
+              <div style={{
+                padding: '20px 22px', borderBottom: '1px dashed rgba(247,245,242,.18)',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              }}>
+                <div>
+                  <div style={{ fontSize: 11, letterSpacing: 1.5, color: 'var(--gold)', fontWeight: 700 }}>THE KING BARBER</div>
+                  <div className="serif" style={{ fontSize: 24, fontWeight: 700, marginTop: 3 }}>Alberto Barber</div>
+                </div>
+                <div style={{
+                  width: 46, height: 46, borderRadius: '50%', border: '2px solid var(--gold)',
+                  background: 'linear-gradient(145deg,#C9A961,#2a2114)', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center',
+                  fontFamily: "'Playfair Display',serif", fontWeight: 700, color: '#0A0A0A',
+                }}>AB</div>
+              </div>
+
+              <div style={{ padding: '20px 22px', display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+                <div style={{ display: 'grid', gap: 14, alignContent: 'start' }}>
+                  <Field k="Servicio" v={`${confirmed.service.emoji} ${confirmed.service.name}`} />
+                  <Field k="Fecha" v={confirmed.dateLabel} />
+                  <Field k="Hora" v={confirmed.slot.time} />
+                  <Field k="Total" v={`$${confirmed.service.price}`} big />
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <QR seed={confirmed.code.charCodeAt(3) || 7} />
+                  <div style={{ fontSize: 11, color: 'rgba(247,245,242,.5)', marginTop: 7, fontFamily: 'monospace' }}>
+                    {confirmed.code}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{
+                background: 'var(--green)', color: '#04210c', textAlign: 'center',
+                padding: '11px', fontSize: 14, fontWeight: 700, letterSpacing: 0.3,
+              }}>
+                ✓ Reserva confirmada
+              </div>
+            </div>
+
+            <button onClick={() => {
+              haptic(8);
+              const d = confirmed.date || new Date();
+              const stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+              const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nSUMMARY:${confirmed.service.name} - Alberto Barber\nDTSTART;VALUE=DATE:${stamp}\nDESCRIPTION:Turno ${confirmed.code} a las ${confirmed.slot.time}\nLOCATION:The King Barber\nEND:VEVENT\nEND:VCALENDAR`;
+              const blob = new Blob([ics], { type: 'text/calendar' });
+              const a = document.createElement('a');
+              a.href = URL.createObjectURL(blob);
+              a.download = 'turno-alberto-barber.ics';
+              a.click();
+            }} style={{
+              width: '100%', marginTop: 14, padding: '15px', borderRadius: 16,
+              background: 'var(--surface-2)', color: '#F7F5F2', fontSize: 14.5, fontWeight: 600,
+              border: '1px solid rgba(247,245,242,.15)',
+            }}>
+              📅 Agregar a Calendar
+            </button>
+            <button onClick={() => { setConfirmed(null); setSlot(null); }} style={{
+              width: '100%', marginTop: 10, padding: '13px', fontSize: 13.5,
+              color: 'rgba(247,245,242,.6)',
+            }}>
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Section({ n, title }) {
+  return (
+    <div className="reveal" style={{ display: 'flex', alignItems: 'baseline', gap: 10, margin: '26px 2px 14px' }}>
+      <span style={{ fontSize: 11, fontFamily: 'monospace', color: 'var(--gold)', letterSpacing: 1 }}>{n}</span>
+      <h2 className="serif" style={{ fontSize: 22, fontWeight: 600, margin: 0 }}>{title}</h2>
+    </div>
+  );
+}
+
+function Field({ k, v, big }) {
+  return (
+    <div>
+      <div style={{ fontSize: 10.5, letterSpacing: 1, color: 'rgba(247,245,242,.45)', textTransform: 'uppercase' }}>{k}</div>
+      <div style={{ fontSize: big ? 20 : 15, fontWeight: big ? 800 : 600, marginTop: 3, color: big ? 'var(--gold)' : '#F7F5F2' }}>{v}</div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
